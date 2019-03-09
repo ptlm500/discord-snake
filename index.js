@@ -3,11 +3,11 @@ const client = new Discord.Client();
 const config = require('./secrets.json');
 
 client.once('ready', () => {
-	console.log('Ready!');
+  console.log('Ready!');
 });
 
 client.login(config.token);
 
 client.on('message', message => {
-	console.log(message.content);
+  console.log(message.content);
 });
