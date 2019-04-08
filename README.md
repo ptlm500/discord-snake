@@ -53,6 +53,7 @@ If you already have an SSH key for your development machine linked to your GitHu
 ```
 
 ## Test it out!
+
 Hopefully you're now ready to start up the bot! Test it out by running `npm start` in your terminal.
 If you see "Ready !" logged out, your server is running.
 

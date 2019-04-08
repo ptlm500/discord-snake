@@ -6,7 +6,7 @@ let world;
 let worldAsString;
 
 Given('a world width {int}, height {int}', function(width, height) {
-  world = new World(width, height);
+  world = new World({width, height});
 });
 
 When('I render the world as a string', function() {
