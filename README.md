@@ -2,6 +2,8 @@
 
 A bot to play snake on discord
 
+[![Build Status](https://travis-ci.com/ptlm500/discord-snake.svg?branch=master)](https://travis-ci.com/ptlm500/discord-snake)
+
 # Recommended tooling
 
 ## IDE
