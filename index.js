@@ -17,26 +17,22 @@ client.on('message', message => {
     message.reply(game.render(), {reply: false});
     break;
   case 'r':
-    game.tick(1, 0);
+    game.tick('right');
     message.reply(game.render(), {reply: false});
     break;
   case 'l':
-    game.tick(-1, 1);
+    game.tick('left');
     message.reply(game.render(), {reply: false});
     break;
   case 'u':
-    game.tick(0, -1);
+    game.tick('up');
     message.reply(game.render(), {reply: false});
     break;
   case 'd':
-    game.tick(0, 1);
+    game.tick('down');
     message.reply(game.render(), {reply: false});
     break;
   default:
     break;
   }
-
-  // console.log(message.content);
-  // console.log(game.render());
-  // message.reply();
 });
