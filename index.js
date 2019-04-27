@@ -32,15 +32,15 @@ async function reactTo(message) {
     try {
       await message.react(emoji);
     } catch(e) {
-      return e;
+      return;
     }
   }
 }
 
-function advanceGame(message, nextMove) {
+async function advanceGame(message, nextMove) {
   game.tick(nextMove);
-  message.reply(game.render(), {reply: false});
-  message.delete();
+  await message.reply(game.render(), {reply: false});
+  await message.delete();
 }
 
 client.on('message', message => {
