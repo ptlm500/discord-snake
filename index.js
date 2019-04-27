@@ -20,39 +20,42 @@ function collectorFilter(reaction, user) {
   return true;
 }
 
-const controlEmojis = ['◀', '▶', '🔼', '🔽'];
+const controlEmojis = {
+  '◀': 'left',
+  '▶': 'right',
+  '🔼': 'up',
+  '🔽': 'down'
+};
+
+async function reactTo(message) {
+  for (const emoji of Object.keys(controlEmojis)) {
+    try {
+      await message.react(emoji);
+    } catch(e) {
+      return e;
+    }
+  }
+}
+
+function advanceGame(message, nextMove) {
+  game.tick(nextMove);
+  message.reply(game.render(), {reply: false});
+  message.delete();
+}
 
 client.on('message', message => {
   if (message.author.id === client.user.id) {
     if (collector) {
       collector.stop();
     }
-    Promise.all(
-      controlEmojis.map(async emoji => await message.react(emoji))
-    );
-    collector = message.createReactionCollector(collectorFilter);
 
+    reactTo(message);
+
+    collector = message.createReactionCollector(collectorFilter);
+    let nextMove;
     collector.on('collect', (reaction) => {
-      switch(reaction.emoji.name) {
-      case controlEmojis[1]:
-        game.tick('right');
-        message.reply(game.render(), {reply: false});
-        break;
-      case controlEmojis[0]:
-        game.tick('left');
-        message.reply(game.render(), {reply: false});
-        break;
-      case controlEmojis[2]:
-        game.tick('up');
-        message.reply(game.render(), {reply: false});
-        break;
-      case controlEmojis[3]:
-        game.tick('down');
-        message.reply(game.render(), {reply: false});
-        break;
-      default:
-        break;
-      }
+      nextMove = controlEmojis[reaction.emoji.name];
+      nextMove && advanceGame(message, nextMove);
     });
   }
 
