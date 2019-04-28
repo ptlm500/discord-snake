@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`generateSnake generates the correct snake coordinates 1`] = `
+Array [
+  Object {
+    "x": 12,
+    "y": 10,
+  },
+  Object {
+    "x": 11,
+    "y": 10,
+  },
+  Object {
+    "x": 10,
+    "y": 10,
+  },
+  Object {
+    "x": 9,
+    "y": 10,
+  },
+]
+`;
