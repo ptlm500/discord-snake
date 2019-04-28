@@ -1,6 +1,8 @@
+require('dotenv').config();
+
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const config = require('./secrets.json');
+const config = require('./config.json');
 const Game = require('./lib/game/Game');
 const VotingHandler = require('./lib/voting-handler/VotingHandler');
 const logger = require('./lib/logger');
@@ -8,11 +10,11 @@ const logger = require('./lib/logger');
 let game;
 
 client.once('ready', () => {
-  game = new Game(20, 20);
+  game = new Game(config.gameHeight, config.gameWidth);
   logger.info({message: 'Ready!'});
 });
 
-client.login(config.token);
+client.login(process.env.DISCORD_TOKEN);
 
 let collector;
 
@@ -51,8 +53,10 @@ client.on('message', message => {
       collector = message.createReactionCollector(collectorFilter);
       collector.on('collect', (reaction) => {
         if (!votingTimerStarted) {
-          setTimeout(() =>
-            advanceGame(message, votingHandler.getChosenVote()), 2 * 1000);
+          setTimeout(
+            () => advanceGame(message, votingHandler.getChosenVote()),
+            config.voteTimerInSecs * 1000
+          );
 
           votingTimerStarted = true;
           logger.info({message: 'Started voting timer'});
@@ -67,20 +71,22 @@ client.on('message', message => {
     }
   }
 
-  switch(message.content) {
-  case 'render':
-    logger.info('Rendered by %s', message.author.username);
-    game.start();
-    message.reply(game.message, {reply: false});
-    break;
-  case 'restart':
-    logger.info('Restarted by %s', message.author.username);
-    game = new Game(20, 20);
-    game.start();
-    message.reply(game.message, {reply: false});
-    break;
-  default:
-    break;
+  if (message.content.startsWith(config.prefix)) {
+    switch(message.content) {
+    case `${config.prefix}render`:
+      logger.info('Rendered by %s', message.author.username);
+      game.start();
+      message.reply(game.message, {reply: false});
+      break;
+    case `${config.prefix}restart`:
+      logger.info('Restarted by %s', message.author.username);
+      game = new Game(config.gameHeight, config.gameWidth);
+      game.start();
+      message.reply(game.message, {reply: false});
+      break;
+    default:
+      break;
+    }
   }
 });
 

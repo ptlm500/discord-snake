@@ -45,13 +45,11 @@ If you already have an SSH key for your development machine linked to your GitHu
 1. Follow [these steps](https://discordjs.guide/preparations/setting-up-a-bot-application.html) to setup a Discord Bot linked to your account. You'll use this bot for testing.
 2. [Add a bot to a server you own](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links)
 3. Open the repository folder `discord-snake` with VS Code
-4. Create a new file called `secrets.json` in the root of the project
-5. Copy the following into `secrets.json`:
+4. Create a new file called `.env` in the root folder of the project
+5. Copy the following into `.env`:
 
-```json
-{
-  "token": "<YOUR BOTS TOKEN>"
-}
+```env
+DISCORD_TOKEN="YOUR_TOKEN"
 ```
 
 ## Test it out!
