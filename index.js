@@ -3,11 +3,13 @@ const client = new Discord.Client();
 const config = require('./secrets.json');
 const Game = require('./lib/game/Game');
 const VotingHandler = require('./lib/voting-handler/VotingHandler');
+const logger = require('./lib/logger');
 
-let game = new Game(20, 20);
+let game;
 
 client.once('ready', () => {
-  console.log('Ready!');
+  game = new Game(20, 20);
+  logger.info({message: 'Ready!'});
 });
 
 client.login(config.token);
@@ -34,25 +36,6 @@ const controlEmojis = {
   '🔽': 'down'
 };
 
-async function reactToWithEmojis(message, emojis) {
-  for (const emoji of emojis) {
-    try {
-      await message.react(emoji);
-    } catch(e) {
-      return;
-    }
-  }
-}
-
-async function advanceGame(message, nextMove) {
-  console.log('Advancing with move', nextMove);
-  game.tick(nextMove);
-  await message.reply(game.message, {reply: false});
-  if (!game.gameOver) {
-    await message.delete();
-  }
-}
-
 client.on('message', message => {
   if (message.author.id === client.user.id) {
     if (collector || game.gameOver) {
@@ -72,9 +55,13 @@ client.on('message', message => {
             advanceGame(message, votingHandler.getChosenVote()), 2 * 1000);
 
           votingTimerStarted = true;
-          console.log('Started voting timer');
+          logger.info({message: 'Started voting timer'});
         }
-        console.log('Adding vote', reaction.emoji.name, controlEmojis[reaction.emoji.name]);
+        logger.info({
+          message: 'Adding vote',
+          name: reaction.emoji.name,
+          move: controlEmojis[reaction.emoji.name]
+        });
         votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
       });
     }
@@ -82,13 +69,36 @@ client.on('message', message => {
 
   switch(message.content) {
   case 'render':
-    message.reply(game.render(), {reply: false});
+    logger.info('Rendered by %s', message.author.username);
+    game.start();
+    message.reply(game.message, {reply: false});
     break;
   case 'restart':
+    logger.info('Restarted by %s', message.author.username);
     game = new Game(20, 20);
-    message.reply(game.render(), {reply: false});
+    game.start();
+    message.reply(game.message, {reply: false});
     break;
   default:
     break;
   }
 });
+
+async function reactToWithEmojis(message, emojis) {
+  for (const emoji of emojis) {
+    try {
+      await message.react(emoji);
+    } catch(e) {
+      return;
+    }
+  }
+}
+
+async function advanceGame(message, nextMove) {
+  logger.info({message: 'Advancing with move', nextMove});
+  game.tick(nextMove);
+  await message.reply(game.message, {reply: false});
+  if (!game.gameOver) {
+    await message.delete();
+  }
+}
