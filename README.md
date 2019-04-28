@@ -10,7 +10,7 @@ A bot to play snake on discord
 [Visual Studio Code](https://code.visualstudio.com/) with the following packages:
 
 - ESLint
-- Cucumber (Gherkin Full Support)
+- Jest
 - npm Intellisense
 - Path Intellisense
 - vscode-icons
