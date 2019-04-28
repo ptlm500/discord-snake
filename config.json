@@ -1,3 +1,6 @@
 {
-  "prefix": "!"
+  "prefix": "!",
+  "gameHeight": 20,
+  "gameWidth": 20,
+  "voteTimerInSecs": 2
 }
