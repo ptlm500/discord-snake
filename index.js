@@ -47,33 +47,37 @@ async function reactToWithEmojis(message, emojis) {
 async function advanceGame(message, nextMove) {
   console.log('Advancing with move', nextMove);
   game.tick(nextMove);
-  await message.reply(game.render(), {reply: false});
-  await message.delete();
+  await message.reply(game.message, {reply: false});
+  if (!game.gameOver) {
+    await message.delete();
+  }
 }
 
 client.on('message', message => {
   if (message.author.id === client.user.id) {
-    if (collector) {
+    if (collector || game.gameOver) {
       collector.stop();
     }
 
-    let votingTimerStarted = false;
-    const votingHandler = new VotingHandler(controlEmojis);
+    if (!game.gameOver) {
+      let votingTimerStarted = false;
+      const votingHandler = new VotingHandler(controlEmojis);
 
-    reactToWithEmojis(message, Object.keys(controlEmojis));
+      reactToWithEmojis(message, Object.keys(controlEmojis));
 
-    collector = message.createReactionCollector(collectorFilter);
-    collector.on('collect', (reaction) => {
-      if (!votingTimerStarted) {
-        setTimeout(() =>
-          advanceGame(message, votingHandler.getChosenVote()), 2 * 1000);
+      collector = message.createReactionCollector(collectorFilter);
+      collector.on('collect', (reaction) => {
+        if (!votingTimerStarted) {
+          setTimeout(() =>
+            advanceGame(message, votingHandler.getChosenVote()), 2 * 1000);
 
-        votingTimerStarted = true;
-        console.log('Started voting timer');
-      }
-      console.log('Adding vote', reaction.emoji.name, controlEmojis[reaction.emoji.name]);
-      votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
-    });
+          votingTimerStarted = true;
+          console.log('Started voting timer');
+        }
+        console.log('Adding vote', reaction.emoji.name, controlEmojis[reaction.emoji.name]);
+        votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
+      });
+    }
   }
 
   switch(message.content) {
