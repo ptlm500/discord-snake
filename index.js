@@ -16,6 +16,8 @@ client.once('ready', () => {
 
 client.login(process.env.DISCORD_TOKEN);
 
+client.on('error', error => logger.error('Error Occurred', error));
+
 let collector;
 
 function collectorFilter(reaction, user) {
