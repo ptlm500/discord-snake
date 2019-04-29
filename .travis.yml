@@ -7,16 +7,21 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
-script:
-  - npm test
 stages:
+  - test
   - name: deploy
-  if: branch = master
-  script:
-    - eval "$(ssh-agent -s)" #start the ssh agent
-    - echo -e $RESIN_DEPLOY_KEY > id_rsa
-    - chmod 0600 id_rsa
-    - ssh-add ./id_rsa
-    - cat resinkey >> ~/.ssh/known_hosts
-    - git remote add resin $RESIN_REMOTE
-    - git push resin master
+    if: branch = master
+jobs:
+  include:
+    - stage: test
+      script:
+        - npm test
+    - stage: deploy
+      script:
+        - eval "$(ssh-agent -s)" #start the ssh agent
+        - echo -e $RESIN_DEPLOY_KEY > id_rsa
+        - chmod 0600 id_rsa
+        - ssh-add ./id_rsa
+        - cat resinkey >> ~/.ssh/known_hosts
+        - git remote add resin $RESIN_REMOTE
+        - git push resin master
