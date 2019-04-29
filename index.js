@@ -71,7 +71,7 @@ client.on('message', message => {
     }
   }
 
-  if (message.content.startsWith(config.prefix)) {
+  if (message.content.startsWith(config.prefix) && message.channel.id === process.env.ALLOWED_CHANNEL) {
     switch(message.content) {
     case `${config.prefix}render`:
       logger.info('Rendered by %s', message.author.username);
