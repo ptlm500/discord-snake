@@ -1,5 +1,6 @@
 {
   "prefix": "!",
+  "deletePreviousMessages": true,
   "gameHeight": 15,
   "gameWidth": 15,
   "voteTimerInSecs": 30

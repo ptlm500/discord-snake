@@ -41,39 +41,47 @@ const controlEmojis = {
 };
 
 client.on('message', message => {
-  if (message.author.id === client.user.id) {
-    if (collector || game.gameOver) {
-      collector.stop();
-    }
-
-    if (!game.gameOver) {
-      let votingTimerStarted = false;
-      const votingHandler = new VotingHandler(controlEmojis);
-
-      reactToWithEmojis(message, Object.keys(controlEmojis));
-
-      collector = message.createReactionCollector(collectorFilter);
-      collector.on('collect', (reaction) => {
-        if (!votingTimerStarted) {
-          setTimeout(
-            () => advanceGame(message, votingHandler.getChosenVote()),
-            config.voteTimerInSecs * 1000
-          );
-
-          votingTimerStarted = true;
-          logger.info({message: 'Started voting timer'});
-        }
-        logger.info({
-          message: 'Adding vote',
-          name: reaction.emoji.name,
-          move: controlEmojis[reaction.emoji.name]
-        });
-        votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
-      });
-    }
+  switch(message.content) {
+  case `${config.prefix}status`:
+    message.reply(getStatus());
+    break;
+  default:
+    break;
   }
 
-  if (message.content.startsWith(config.prefix) && message.channel.id === process.env.ALLOWED_CHANNEL) {
+  if (message.channel.id === process.env.ALLOWED_CHANNEL) {
+    if (message.author.id === client.user.id) {
+      if (collector || game.gameOver) {
+        collector.stop();
+      }
+
+      if (!game.gameOver) {
+        let votingTimerStarted = false;
+        const votingHandler = new VotingHandler(controlEmojis);
+
+        reactToWithEmojis(message, Object.keys(controlEmojis));
+
+        collector = message.createReactionCollector(collectorFilter);
+        collector.on('collect', (reaction) => {
+          if (!votingTimerStarted) {
+            setTimeout(
+              () => advanceGame(message, votingHandler.getChosenVote()),
+              config.voteTimerInSecs * 1000
+            );
+
+            votingTimerStarted = true;
+            logger.info({message: 'Started voting timer'});
+          }
+          logger.info({
+            message: 'Adding vote',
+            name: reaction.emoji.name,
+            move: controlEmojis[reaction.emoji.name]
+          });
+          votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
+        });
+      }
+    }
+
     switch(message.content) {
     case `${config.prefix}render`:
       logger.info('Rendered by %s', message.author.username);
@@ -106,7 +114,13 @@ async function advanceGame(message, nextMove) {
   logger.info({message: 'Advancing with move', nextMove});
   game.tick(nextMove);
   await message.reply(game.message, {reply: false});
-  if (!game.gameOver) {
+  if (!game.gameOver && config.deletePreviousMessages) {
     await message.delete();
   }
+}
+
+function getStatus() {
+  return `
+  uptime: ${client.uptime}
+  `;
 }
