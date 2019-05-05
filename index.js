@@ -7,18 +7,31 @@ const Game = require('./lib/game/Game');
 const VotingHandler = require('./lib/voting-handler/VotingHandler');
 const logger = require('./lib/logger');
 
+
+const info = {
+  restarts: 0
+};
+
 let game;
+let currentGameMessage;
+let votingHandler;
+let collector;
+let onTick;
 
 client.once('ready', () => {
   game = new Game(config.gameHeight, config.gameWidth);
-  logger.info({message: 'Ready!'});
+  logger.info({message: 'Client ready!'});
 });
 
 client.login(process.env.DISCORD_TOKEN);
 
-client.on('error', error => logger.error('Error Occurred', error));
+client.on('error', error => {
+  logger.error('Error Occurred', error);
 
-let collector;
+  if (error.error && error.error.code === 'ECONNRESET') {
+    restartClient();
+  }
+});
 
 function collectorFilter(reaction, user) {
   if (user.id === client.user.id) {
@@ -45,40 +58,24 @@ client.on('message', message => {
   case `${config.prefix}status`:
     message.reply(getStatus());
     break;
+  case `${config.prefix}restartClient`:
+    logger.info('Client restarted by %s', message.author.username);
+    restartClient();
+    break;
   default:
     break;
   }
 
   if (message.channel.id === process.env.ALLOWED_CHANNEL) {
     if (message.author.id === client.user.id) {
+      currentGameMessage = message;
       if (collector || game.gameOver) {
         collector.stop();
       }
 
       if (!game.gameOver) {
-        let votingTimerStarted = false;
-        const votingHandler = new VotingHandler(controlEmojis);
-
         reactToWithEmojis(message, Object.keys(controlEmojis));
-
-        collector = message.createReactionCollector(collectorFilter);
-        collector.on('collect', (reaction) => {
-          if (!votingTimerStarted) {
-            setTimeout(
-              () => advanceGame(message, votingHandler.getChosenVote()),
-              config.voteTimerInSecs * 1000
-            );
-
-            votingTimerStarted = true;
-            logger.info({message: 'Started voting timer'});
-          }
-          logger.info({
-            message: 'Adding vote',
-            name: reaction.emoji.name,
-            move: controlEmojis[reaction.emoji.name]
-          });
-          votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
-        });
+        addReactionCollector(message);
       }
     }
 
@@ -89,7 +86,7 @@ client.on('message', message => {
       message.reply(game.message, {reply: false});
       break;
     case `${config.prefix}restart`:
-      logger.info('Restarted by %s', message.author.username);
+      logger.info('Game restarted by %s', message.author.username);
       game = new Game(config.gameHeight, config.gameWidth);
       game.start();
       message.reply(game.message, {reply: false});
@@ -119,8 +116,76 @@ async function advanceGame(message, nextMove) {
   }
 }
 
+async function restartClient() {
+  info.restarts = info.restarts + 1;
+
+  if (collector) {
+    try {
+      collector.stop();
+      logger.debug('Stopped collector');
+    } catch (error) {
+      logger.error('Failed to stop collector', error);
+    }
+  }
+
+  if (onTick) {
+    try {
+      clearTimeout(onTick);
+      logger.debug('Stopped old onTick');
+    } catch (error) {
+      logger.error('Failed to stop old onTick', error);
+    }
+  }
+
+  logger.info('Restarting client');
+  try {
+    await client.destroy();
+    logger.info('Old client destroyed');
+  } catch (error) {
+    logger.error('Failed to destroy old client', error);
+    return;
+  }
+
+  try {
+    await client.login(process.env.DISCORD_TOKEN);
+    logger.info('Logged in');
+  } catch (error) {
+    logger.error('Failed to login', error);
+    return;
+  }
+
+  if (currentGameMessage && votingHandler && votingHandler.getChosenVote()) {
+    advanceGame(currentGameMessage, votingHandler.getChosenVote());
+  }
+}
+
 function getStatus() {
   return `
   uptime: ${client.uptime}
+  restarts: ${info.restarts}
   `;
+}
+
+function addReactionCollector(message) {
+  let votingTimerStarted = false;
+  votingHandler = new VotingHandler(controlEmojis);
+
+  collector = message.createReactionCollector(collectorFilter);
+  collector.on('collect', (reaction) => {
+    if (!votingTimerStarted) {
+      onTick = setTimeout(
+        () => advanceGame(message, votingHandler.getChosenVote()),
+        config.voteTimerInSecs * 1000
+      );
+
+      votingTimerStarted = true;
+      logger.debug({message: 'Started voting timer'});
+    }
+    logger.debug({
+      message: 'Adding vote',
+      name: reaction.emoji.name,
+      move: controlEmojis[reaction.emoji.name]
+    });
+    votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
+  });
 }
