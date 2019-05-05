@@ -54,17 +54,7 @@ const controlEmojis = {
 };
 
 client.on('message', message => {
-  switch(message.content) {
-  case `${config.prefix}status`:
-    message.reply(getStatus());
-    break;
-  case `${config.prefix}restartClient`:
-    logger.info('Client restarted by %s', message.author.username);
-    restartClient();
-    break;
-  default:
-    break;
-  }
+  handleAdminMessage(message);
 
   if (message.channel.id === process.env.ALLOWED_CHANNEL) {
     if (message.author.id === client.user.id) {
@@ -101,8 +91,8 @@ async function reactToWithEmojis(message, emojis) {
   for (const emoji of emojis) {
     try {
       await message.react(emoji);
-    } catch(e) {
-      return;
+    } catch(error) {
+      logger.error('Failed to react with emoji', error);
     }
   }
 }
@@ -161,8 +151,8 @@ async function restartClient() {
 
 function getStatus() {
   return `
-  uptime: ${client.uptime}
-  restarts: ${info.restarts}
+uptime:   ${client.uptime}
+restarts: ${info.restarts}
   `;
 }
 
@@ -188,4 +178,20 @@ function addReactionCollector(message) {
     });
     votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
   });
+}
+
+function handleAdminMessage(message) {
+  if (message.channel.type === 'dm') {
+    switch(message.content) {
+    case `${config.prefix}status`:
+      message.reply(getStatus());
+      break;
+    case `${config.prefix}restartClient`:
+      logger.info('Client restarted by %s', message.author.username);
+      restartClient();
+      break;
+    default:
+      break;
+    }
+  }
 }
