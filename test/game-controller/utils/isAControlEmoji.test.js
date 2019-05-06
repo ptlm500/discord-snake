@@ -1,7 +1,6 @@
 /* eslint-env jest */
 const { isAControlEmoji } = require('../../../lib/game-controller/utils');
 
-
 describe('isAControlEmoji', () => {
   it('returns false if the input emoji string is not in the controlEmoji list', () => {
     expect(isAControlEmoji('🔼', {'◀': 'left', '▶': 'right'})).toBeFalsy();
