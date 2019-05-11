@@ -27,6 +27,13 @@ client.on('error', error => {
   }
 });
 
+client.on('disconnect', async () => {
+  logger.warn('Socket disconnected');
+  gameController.stopVoteCollection();
+  await attemptLogin();
+  gameController.resume();
+});
+
 client.on('message', message => {
   handleAdminMessage(message);
 
@@ -52,7 +59,6 @@ client.on('message', message => {
 
 async function restartClient() {
   info.restarts = info.restarts + 1;
-
   gameController.stopVoteCollection();
   logger.info('Restarting client');
   try {
@@ -63,15 +69,28 @@ async function restartClient() {
     return;
   }
 
-  try {
-    await client.login(process.env.DISCORD_TOKEN);
-    logger.info('Logged in');
-  } catch (error) {
-    logger.error('Failed to login', error);
-    return;
-  }
+  await attemptLogin();
 
   gameController.resume();
+}
+
+async function attemptLogin() {
+
+  return new Promise((resolve, reject) => {
+    setTimeout(
+      async () => {
+        try {
+          await client.login(process.env.DISCORD_TOKEN);
+          logger.info('Logged in');
+          resolve('Logged in');
+        } catch (error) {
+          logger.error('Failed to login', error);
+          reject(error);
+        }
+      },
+      10 * 1000
+    );
+  });
 }
 
 function getStatus() {
