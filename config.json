@@ -3,5 +3,11 @@
   "deletePreviousMessages": true,
   "gameHeight": 15,
   "gameWidth": 15,
-  "voteTimerInSecs": 10
+  "voteTimerInSecs": 10,
+  "controlEmojis": {
+    "◀": "left",
+    "▶": "right",
+    "🔼": "up",
+    "🔽": "down"
+  }
 }

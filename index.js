@@ -3,23 +3,18 @@ require('dotenv').config();
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const config = require('./config.json');
-const Game = require('./lib/game/Game');
-const VotingHandler = require('./lib/voting-handler/VotingHandler');
+const GameController = require('./lib/game-controller');
 const logger = require('./lib/logger');
-
 
 const info = {
   restarts: 0
 };
 
-let game;
-let currentGameMessage;
-let votingHandler;
-let collector;
-let onTick;
+let gameController;
+let manualRestart = false;
 
 client.once('ready', () => {
-  game = new Game(config.gameHeight, config.gameWidth);
+  gameController = new GameController(client);
   logger.info({message: 'Client ready!'});
 });
 
@@ -33,63 +28,31 @@ client.on('error', error => {
   }
 });
 
-function collectorFilter(reaction, user) {
-  if (user.id === client.user.id) {
-    return false;
-  } else if (!isAControlEmoji(reaction.emoji.name, controlEmojis)) {
-    return false;
+client.on('disconnect', async () => {
+  logger.warn('Socket disconnected');
+  if (!manualRestart) {
+    gameController.stopVoteCollection();
+    await attemptLogin();
+    gameController.resume();
   }
-  return true;
-}
-
-function isAControlEmoji(emoji, controlEmojis) {
-  return Object.keys(controlEmojis).includes(emoji);
-}
-
-const controlEmojis = {
-  '◀': 'left',
-  '▶': 'right',
-  '🔼': 'up',
-  '🔽': 'down'
-};
+});
 
 client.on('message', message => {
-  switch(message.content) {
-  case `${config.prefix}status`:
-    message.reply(getStatus());
-    break;
-  case `${config.prefix}restartClient`:
-    logger.info('Client restarted by %s', message.author.username);
-    restartClient();
-    break;
-  default:
-    break;
-  }
+  handleAdminMessage(message);
 
   if (message.channel.id === process.env.ALLOWED_CHANNEL) {
     if (message.author.id === client.user.id) {
-      currentGameMessage = message;
-      if (collector || game.gameOver) {
-        collector.stop();
-      }
-
-      if (!game.gameOver) {
-        reactToWithEmojis(message, Object.keys(controlEmojis));
-        addReactionCollector(message);
-      }
+      gameController.handleNewGameMessage(message);
     }
 
     switch(message.content) {
     case `${config.prefix}render`:
       logger.info('Rendered by %s', message.author.username);
-      game.start();
-      message.reply(game.message, {reply: false});
+      message.reply(gameController.start(), {reply: false});
       break;
     case `${config.prefix}restart`:
       logger.info('Game restarted by %s', message.author.username);
-      game = new Game(config.gameHeight, config.gameWidth);
-      game.start();
-      message.reply(game.message, {reply: false});
+      message.reply(gameController.restart(), {reply: false});
       break;
     default:
       break;
@@ -97,46 +60,10 @@ client.on('message', message => {
   }
 });
 
-async function reactToWithEmojis(message, emojis) {
-  for (const emoji of emojis) {
-    try {
-      await message.react(emoji);
-    } catch(e) {
-      return;
-    }
-  }
-}
-
-async function advanceGame(message, nextMove) {
-  logger.info({message: 'Advancing with move', nextMove});
-  game.tick(nextMove);
-  await message.reply(game.message, {reply: false});
-  if (!game.gameOver && config.deletePreviousMessages) {
-    await message.delete();
-  }
-}
-
 async function restartClient() {
+  manualRestart = true;
   info.restarts = info.restarts + 1;
-
-  if (collector) {
-    try {
-      collector.stop();
-      logger.debug('Stopped collector');
-    } catch (error) {
-      logger.error('Failed to stop collector', error);
-    }
-  }
-
-  if (onTick) {
-    try {
-      clearTimeout(onTick);
-      logger.debug('Stopped old onTick');
-    } catch (error) {
-      logger.error('Failed to stop old onTick', error);
-    }
-  }
-
+  gameController.stopVoteCollection();
   logger.info('Restarting client');
   try {
     await client.destroy();
@@ -146,46 +73,49 @@ async function restartClient() {
     return;
   }
 
-  try {
-    await client.login(process.env.DISCORD_TOKEN);
-    logger.info('Logged in');
-  } catch (error) {
-    logger.error('Failed to login', error);
-    return;
-  }
+  await attemptLogin();
 
-  if (currentGameMessage && votingHandler && votingHandler.getChosenVote()) {
-    advanceGame(currentGameMessage, votingHandler.getChosenVote());
-  }
+  gameController.resume();
+  manualRestart = false;
+}
+
+async function attemptLogin(delayInSeconds = 10) {
+  return new Promise((resolve, reject) => {
+    setTimeout(
+      async () => {
+        try {
+          await client.login(process.env.DISCORD_TOKEN);
+          logger.info('Logged in');
+          resolve('Logged in');
+        } catch (error) {
+          logger.error('Failed to login', error);
+          reject(error);
+        }
+      },
+      delayInSeconds * 1000
+    );
+  });
 }
 
 function getStatus() {
   return `
-  uptime: ${client.uptime}
-  restarts: ${info.restarts}
+uptime:   ${client.uptime}
+restarts: ${info.restarts}
   `;
 }
 
-function addReactionCollector(message) {
-  let votingTimerStarted = false;
-  votingHandler = new VotingHandler(controlEmojis);
-
-  collector = message.createReactionCollector(collectorFilter);
-  collector.on('collect', (reaction) => {
-    if (!votingTimerStarted) {
-      onTick = setTimeout(
-        () => advanceGame(message, votingHandler.getChosenVote()),
-        config.voteTimerInSecs * 1000
-      );
-
-      votingTimerStarted = true;
-      logger.debug({message: 'Started voting timer'});
+function handleAdminMessage(message) {
+  if (message.channel.type === 'dm') {
+    switch(message.content) {
+    case `${config.prefix}status`:
+      message.reply(getStatus());
+      break;
+    case `${config.prefix}restartClient`:
+      logger.info('Client restarted by %s', message.author.username);
+      restartClient();
+      break;
+    default:
+      break;
     }
-    logger.debug({
-      message: 'Adding vote',
-      name: reaction.emoji.name,
-      move: controlEmojis[reaction.emoji.name]
-    });
-    votingHandler.updateVotes(controlEmojis[reaction.emoji.name], reaction.count - 1);
-  });
+  }
 }
