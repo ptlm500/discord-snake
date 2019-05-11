@@ -11,6 +11,7 @@ const info = {
 };
 
 let gameController;
+let manualRestart = false;
 
 client.once('ready', () => {
   gameController = new GameController(client);
@@ -29,9 +30,11 @@ client.on('error', error => {
 
 client.on('disconnect', async () => {
   logger.warn('Socket disconnected');
-  gameController.stopVoteCollection();
-  await attemptLogin();
-  gameController.resume();
+  if (!manualRestart) {
+    gameController.stopVoteCollection();
+    await attemptLogin();
+    gameController.resume();
+  }
 });
 
 client.on('message', message => {
@@ -58,6 +61,7 @@ client.on('message', message => {
 });
 
 async function restartClient() {
+  manualRestart = true;
   info.restarts = info.restarts + 1;
   gameController.stopVoteCollection();
   logger.info('Restarting client');
@@ -72,10 +76,10 @@ async function restartClient() {
   await attemptLogin();
 
   gameController.resume();
+  manualRestart = false;
 }
 
-async function attemptLogin() {
-
+async function attemptLogin(delayInSeconds = 10) {
   return new Promise((resolve, reject) => {
     setTimeout(
       async () => {
@@ -88,7 +92,7 @@ async function attemptLogin() {
           reject(error);
         }
       },
-      10 * 1000
+      delayInSeconds * 1000
     );
   });
 }
