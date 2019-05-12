@@ -79,21 +79,23 @@ async function restartClient() {
   manualRestart = false;
 }
 
-async function attemptLogin(delayInSeconds = 10) {
-  return new Promise((resolve, reject) => {
-    setTimeout(
-      async () => {
-        try {
-          await client.login(process.env.DISCORD_TOKEN);
-          logger.info('Logged in');
-          resolve('Logged in');
-        } catch (error) {
-          logger.error('Failed to login', error);
-          reject(error);
-        }
-      },
-      delayInSeconds * 1000
-    );
+async function attemptLogin(retries = 3) {
+  let loginError;
+  return new Promise(async (resolve, reject) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        await client.login(process.env.DISCORD_TOKEN);
+        logger.info('Logged in');
+        resolve('Logged in');
+      } catch (error) {
+        logger.warn('Failed to login', error);
+        loginError = error;
+      }
+    }
+    if (loginError) {
+      logger.error('Failed to login', loginError);
+      reject(loginError);
+    }
   });
 }
 
