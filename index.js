@@ -11,7 +11,6 @@ const info = {
 };
 
 let gameController;
-let manualRestart = false;
 
 client.once('ready', () => {
   gameController = new GameController(client);
@@ -30,11 +29,6 @@ client.on('error', error => {
 
 client.on('disconnect', async () => {
   logger.warn('Socket disconnected');
-  if (!manualRestart) {
-    gameController.stopVoteCollection();
-    await attemptLogin();
-    gameController.resume();
-  }
 });
 
 client.on('message', message => {
@@ -61,7 +55,6 @@ client.on('message', message => {
 });
 
 async function restartClient() {
-  manualRestart = true;
   info.restarts = info.restarts + 1;
   gameController.stopVoteCollection();
   logger.info('Restarting client');
@@ -76,7 +69,6 @@ async function restartClient() {
   await attemptLogin();
 
   gameController.resume();
-  manualRestart = false;
 }
 
 async function attemptLogin(retries = 3) {
