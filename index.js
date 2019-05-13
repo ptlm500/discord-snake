@@ -79,6 +79,7 @@ async function attemptLogin(retries = 3) {
         await client.login(process.env.DISCORD_TOKEN);
         logger.info('Logged in');
         resolve('Logged in');
+        break;
       } catch (error) {
         logger.warn('Failed to login', error);
         loginError = error;
