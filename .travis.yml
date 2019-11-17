@@ -11,6 +11,8 @@ stages:
   - test
   - name: deploy
     if: branch = master
+addons:
+  ssh_known_hosts: git.balena-cloud.com
 jobs:
   include:
     - stage: test
@@ -22,7 +24,5 @@ jobs:
         - echo -e $RESIN_DEPLOY_KEY > id_rsa
         - chmod 0600 id_rsa
         - ssh-add ./id_rsa
-        - ssh-keyscan $RESIN_HOST >> ~/.ssh/known_hosts
-        - cat ~/.ssh/known_hosts
         - git remote add resin $RESIN_REMOTE
         - git push resin master
