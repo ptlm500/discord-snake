@@ -24,4 +24,4 @@ jobs:
         - ssh-add ./id_rsa
         - cat resinkey >> ~/.ssh/known_hosts
         - git remote add resin $RESIN_REMOTE
-        - git push resin master
+        - yes Y | git push resin master
