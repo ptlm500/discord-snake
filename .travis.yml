@@ -10,7 +10,7 @@ addons:
 stages:
   - test
   - name: deploy
-    if: branch = production
+    if: branch == master AND (NOT (type IN (push, pull_request))
 jobs:
   include:
     - stage: test
@@ -24,4 +24,4 @@ jobs:
         - ssh-add ./id_rsa
         - cat resinkey >> ~/.ssh/known_hosts
         - git remote add resin $RESIN_REMOTE
-        - git push resin master
+        - yes Y | git push resin master
