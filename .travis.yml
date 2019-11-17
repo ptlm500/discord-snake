@@ -10,7 +10,7 @@ addons:
 stages:
   - test
   - name: deploy
-    if: branch = master
+    if: branch == master AND (NOT (type IN (push, pull_request))
 jobs:
   include:
     - stage: test
