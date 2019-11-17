@@ -50,6 +50,8 @@ describe('VotingHandler', () => {
 
     votingHandler._collector.emit('collect', {emoji: {name: '◀'}, count: 2});
 
+    expect(votingHandler._votingTimerStarted).toBeTruthy();
+
     expect(votingHandler._votes).toEqual({
       'left': 1,
       'right': 0
