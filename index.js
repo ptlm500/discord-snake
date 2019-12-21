@@ -34,6 +34,8 @@ client.on('disconnect', async () => {
 client.on('message', message => {
   handleAdminMessage(message);
 
+  handleCountingMessage(message);
+
   if (message.channel.id === process.env.ALLOWED_CHANNEL) {
     if (message.author.id === client.user.id) {
       gameController.handleNewGameMessage(message);
@@ -112,5 +114,12 @@ function handleAdminMessage(message) {
     default:
       break;
     }
+  }
+}
+
+function handleCountingMessage(message) {
+  const randomInt = Math.random();
+  if (randomInt > 0.5 && message.channel.id === '657199994927054859' && message.author.id !== client.user.id) {
+    message.reply(`${randomInt * 100000000000000000}`);
   }
 }
