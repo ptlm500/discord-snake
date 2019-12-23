@@ -36,6 +36,8 @@ client.on('message', message => {
 
   handleCountingMessage(message);
 
+  handleCommand(message);
+
   if (message.channel.id === process.env.ALLOWED_CHANNEL) {
     if (message.author.id === client.user.id) {
       gameController.handleNewGameMessage(message);
@@ -121,5 +123,14 @@ function handleCountingMessage(message) {
   const randomInt = Math.random();
   if (randomInt > 0.5 && message.channel.id === '657199994927054859' && message.author.id !== client.user.id) {
     message.reply(`${randomInt * 100000000000000000}`);
+  }
+}
+
+function handleCommand(message) {
+  if (message.content.charAt(0) === '/') {
+    if (message.content.substring(1, 5) === 'code' && message.channel.id === '657199994927054859' && message.author.id !== client.user.id) {
+      const superSafeString = message.content.repeat(1);
+      eval(superSafeString.split(/(?<=^\S+)\s/)[0]);
+    }
   }
 }
