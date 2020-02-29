@@ -9,8 +9,8 @@ addons:
       - g++-4.8
 stages:
   - test
-  - name: deploy
-    if: branch = master
+  # - name: deploy
+  #   if: branch = master
 addons:
   ssh_known_hosts: git.balena-cloud.com
 jobs:
